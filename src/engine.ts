@@ -76,7 +76,11 @@ export function recommendation(progress: Progress) {
 export function nextAdaptiveQuestion(progress: Progress, module?: string): Question | undefined {
   const lastQuestionId = progress.attempts.at(-1)?.questionId;
   const completed = new Set(progress.completedChallenges);
-  const eligible = questions.filter(q => (!module || q.module === module) && !completed.has(q.id));
+  const eligible = questions.filter(q =>
+    (!module || q.module === module) &&
+    !completed.has(q.id) &&
+    (!q.id.startsWith("academy-") || progress.completedAcademyLessons.includes(q.topic))
+  );
   if (!eligible.length) return undefined;
   const alternatives = eligible.filter(q => q.id !== lastQuestionId);
   const pool = alternatives.length ? alternatives : eligible;

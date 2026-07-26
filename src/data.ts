@@ -102,33 +102,38 @@ const trackModule: Record<AcademyLesson["track"], Question["module"]> = {
   arritmias:"ritmo", emergencias:"ritmo", conducao:"bloqueios", marcapasso:"bloqueios",
 };
 
-function academyChallenge(lesson: AcademyLesson, challengeIndex: 0|1): Question {
-  const targetIndex=challengeIndex===0?0:lesson.steps.length-1;
-  const target=lesson.steps[targetIndex];
-  const otherSteps=lesson.steps.filter((_,index)=>index!==targetIndex);
+function academyChallenge(lesson: AcademyLesson, stepIndex: number, variant: 0|1|2): Question {
+  const target=lesson.steps[stepIndex];
+  const otherSteps=lesson.steps.filter((_,index)=>index!==stepIndex);
+  const correct=variant===1?target.checkpoint:target.explanation;
+  const sourcePool=variant===1?otherSteps.map(step=>step.checkpoint):otherSteps.map(step=>step.explanation);
   const distractors=[
-    ...otherSteps.map(step=>step.explanation),
-    ...lesson.objectives.map(objective=>`O objetivo principal é apenas ${objective.toLowerCase()}, sem integrar os demais achados.`),
-    "O padrão visual isolado encerra a interpretação e dispensa a sequência sistemática.",
-  ].filter(text=>text!==target.explanation).slice(0,3);
-  while(distractors.length<3)distractors.push("A conclusão pode ser feita sem conferir técnica, contexto ou relação entre os eventos.");
-  const answer=(lesson.order+challengeIndex)%4;
-  const options=[...distractors];
-  options.splice(answer,0,target.explanation);
+    ...sourcePool,
+    ...lesson.objectives.map(objective=>`Basta ${objective.toLowerCase()}; os demais elementos da sequência podem ser ignorados.`),
+    "O aspecto geral do traçado permite concluir sem conferir o mecanismo, a técnica ou a relação temporal.",
+  ].filter(text=>text!==correct).slice(0,3);
+  while(distractors.length<3)distractors.push("Uma única aparência visual encerra o raciocínio e dispensa a análise sistemática.");
+  const answer=(lesson.order+stepIndex+variant)%4;
+  const options=[...distractors]; options.splice(answer,0,correct);
+  const prompts=[
+    `Qual explicação constrói corretamente o conceito “${target.title}”?`,
+    `Ao revisar “${target.title}”, qual frase deve funcionar como checagem de segurança?`,
+    `Um aluno tentou concluir “${target.title}” apenas pela aparência geral. Qual correção recupera o raciocínio adequado?`,
+  ];
   return {
-    id:`academy-${lesson.id}-0${challengeIndex+1}`,
+    id:`academy-${lesson.id}-s${String(stepIndex+1).padStart(2,"0")}-q${variant+1}`,
     module:trackModule[lesson.track],
     topic:lesson.id,
-    prompt:`Em “${lesson.title}”, qual afirmação explica corretamente “${target.title}”?`,
-    type:challengeIndex===0?"choice":"report",
+    prompt:`${lesson.title}: ${prompts[variant]}`,
+    type:variant===0?"choice":variant===1?"compare":"report",
     options,
     answer,
-    explanation:target.explanation,
-    alternativeExplanation:target.checkpoint,
+    explanation:variant===1?target.checkpoint:target.explanation,
+    alternativeExplanation:variant===1?target.explanation:target.checkpoint,
     skills:[trackSkill[lesson.track]],
-    difficulty:challengeIndex===0?1:2,
-    points:challengeIndex===0?25:40,
-    errorType:challengeIndex===0?"conceitual":"aplicacao",
+    difficulty:variant===0?1:variant===1?2:3,
+    points:variant===0?20:variant===1?30:45,
+    errorType:variant===0?"conceitual":variant===1?"sequencia":"aplicacao",
     trace:lesson.visual,
     visualFocus:lesson.track==="repolarizacao"?"t":lesson.track==="arritmias"||lesson.track==="emergencias"?"rr":lesson.track==="conducao"?"terminal":undefined,
     visualInstruction:`Use o traçado como apoio e relacione-o ao conceito central da aula ${lesson.order}.`,
@@ -137,10 +142,13 @@ function academyChallenge(lesson: AcademyLesson, challengeIndex: 0|1): Question 
   };
 }
 
-const academyQuestions=academyLessons.flatMap(lesson=>[
-  academyChallenge(lesson,0),
-  academyChallenge(lesson,1),
-]);
+const academyQuestions=academyLessons.flatMap(lesson=>
+  lesson.steps.flatMap((_,stepIndex)=>[
+    academyChallenge(lesson,stepIndex,0),
+    academyChallenge(lesson,stepIndex,1),
+    academyChallenge(lesson,stepIndex,2),
+  ]),
+);
 
 export const questions: Question[]=[...coreQuestions,...academyQuestions];
 

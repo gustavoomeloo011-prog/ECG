@@ -14,7 +14,7 @@ import "./styles.css";
 type View = "home" | "academy" | "academyLesson" | "path" | "lesson" | "exercise" | "dashboard" | "errors" | "settings";
 const moduleOrder: ModuleId[] = ["ondas","ritmo","bloqueios"];
 const academyPracticeMap: Record<string,string> = Object.fromEntries(
-  academyLessons.map(lesson=>[lesson.id,`academy-${lesson.id}-01`]),
+  academyLessons.map(lesson=>[lesson.id,`academy-${lesson.id}-s01-q1`]),
 );
 
 function App(){
