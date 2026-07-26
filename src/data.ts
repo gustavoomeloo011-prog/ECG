@@ -220,8 +220,29 @@ const trackModule: Record<AcademyLesson["track"], Question["module"]> = {
   arritmias:"ritmo", emergencias:"ritmo", conducao:"bloqueios", marcapasso:"bloqueios",
 };
 
+function traceForChallenge(lesson:AcademyLesson,title:string): Lesson["visual"] {
+  const text=title.toLocaleLowerCase("pt-BR");
+  if(lesson.id==="cond-04"){
+    if(text.includes("primeiro grau"))return "av1";
+    if(text.includes("tipo i")||text.includes("wenckebach"))return "mobitz1";
+    if(text.includes("tipo ii")||text.includes("2:1")||text.includes("avançado"))return "mobitz2";
+    if(text.includes("terceiro")||text.includes("dissociação"))return "avcomplete";
+  }
+  if(lesson.id==="arr-06"&&(text.includes("extrass")||text.includes("prematur")||text.includes("batimento")))return "pvc";
+  if(lesson.id==="repo-02"&&text.includes("qt"))return "qtlong";
+  if(lesson.id==="repo-02"&&text.includes("brugada"))return "brugada";
+  if(lesson.id==="emer-02"){
+    if(text.includes("fibrilação ventricular")||text.includes("fv"))return "vf";
+    if(text.includes("tv")||text.includes("taquicardia ventricular"))return "pvt";
+    if(text.includes("assistolia"))return "asystole";
+    if(text.includes("aesp"))return "pea";
+  }
+  return lesson.visual;
+}
+
 function academyChallenge(lesson: AcademyLesson, stepIndex: number, variant: 0|1|2): Question {
   const target=lesson.steps[stepIndex];
+  const trace=traceForChallenge(lesson,target.title);
   const otherSteps=lesson.steps.filter((_,index)=>index!==stepIndex);
   const correct=variant===1?target.checkpoint:target.explanation;
   const sourcePool=variant===1?otherSteps.map(step=>step.checkpoint):otherSteps.map(step=>step.explanation);
@@ -256,8 +277,11 @@ function academyChallenge(lesson: AcademyLesson, stepIndex: number, variant: 0|1
     difficulty:variant===0?1:variant===1?2:3,
     points:variant===0?20:variant===1?30:45,
     errorType:variant===0?"conceitual":variant===1?"sequencia":"aplicacao",
-    trace:lesson.visual,
-    visualFocus:lesson.track==="repolarizacao"?"t":lesson.track==="arritmias"||lesson.track==="emergencias"?"rr":lesson.track==="conducao"?"terminal":undefined,
+    trace,
+    visualFocus:trace==="qtlong"?"t":trace==="brugada"||trace==="ischemia"?"st":
+      trace==="af"||trace==="flutter"||trace==="svt"?"rr":trace==="pvc"||trace==="vt"||trace==="pvt"?"qrs":
+      trace==="av1"||trace==="mobitz1"||trace==="mobitz2"||trace==="avcomplete"?"pr":
+      trace==="rbbb"||trace==="lbbb"||trace==="lafb"?"terminal":trace==="lvh"?"qrs":undefined,
     visualInstruction:`Use o traçado como apoio e relacione-o ao conceito central da aula ${lesson.order}.`,
     reviewed:lesson.status==="reviewed",
     sourceIds:[`incor-aula-${lesson.sourceCourseId}`,lesson.track==="emergencias"?"aha-2025-cardiac-arrest":"aha-ecg-part-i"],

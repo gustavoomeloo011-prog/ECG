@@ -19,7 +19,9 @@ export interface Lesson {
   shortConcept: string;
   intuitive: string;
   technical: string;
-  visual: "normal" | "slow" | "fast" | "rbbb" | "lbbb" | "av1" | "mobitz1" | "mobitz2" | "avcomplete" | "vt" | "vf" | "pvt" | "asystole" | "pea";
+  visual: "normal" | "slow" | "fast" | "rbbb" | "lbbb" | "av1" | "mobitz1" | "mobitz2" | "avcomplete"
+    | "flutter" | "af" | "svt" | "pvc" | "paced" | "qtlong" | "brugada" | "ischemia" | "lvh" | "lafb"
+    | "vt" | "vf" | "pvt" | "asystole" | "pea";
   reviewed: boolean;
 }
 

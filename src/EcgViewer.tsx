@@ -29,7 +29,7 @@ export function EcgViewer({ trace = "normal", compact = false, focus, instructio
       ctx.lineWidth=1;ctx.strokeStyle="rgba(238,123,114,.38)";
       for(let x=-40+shift;x<width;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,height);ctx.stroke()}
       for(let y=0;y<height;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(width,y);ctx.stroke()}
-      const baseline=height*.58,beats=trace==="slow"||trace==="pea"?Math.max(2,width/200):trace==="fast"||trace==="vt"||trace==="pvt"?7:4,beatW=trace==="slow"?200:width/beats,travel=focus&&focus!=="rr"?0:(time*.025)%beatW;
+      const baseline=height*.58,beats=trace==="slow"||trace==="pea"?Math.max(2,width/200):trace==="fast"||trace==="svt"||trace==="flutter"||trace==="vt"||trace==="pvt"?7:4,beatW=trace==="slow"?200:width/beats,travel=focus&&focus!=="rr"?0:(time*.025)%beatW;
       if(focus&&trace!=="vf"&&trace!=="asystole"){
         const ranges:Record<VisualFocus,[number,number,string]>={
           p:[.10,.27,"TRECHO EM ANÁLISE"],pr:[.10,.39,"TRECHO EM ANÁLISE"],qrs:[.40,.61,"TRECHO EM ANÁLISE"],
@@ -59,6 +59,17 @@ export function EcgViewer({ trace = "normal", compact = false, focus, instructio
           for(let x=-100-(scroll%70);x<width+100;x+=70)pWave(x);
           for(let x=-170-(scroll%190);x<width+190;x+=190)qrs(x);
         }
+      }else if(trace==="flutter"){
+        ctx.moveTo(0,baseline);
+        for(let x=-30;x<width+30;x+=18){ctx.lineTo(x+6,baseline-13);ctx.lineTo(x+12,baseline+2);ctx.lineTo(x+18,baseline)}
+        for(let x=35-travel;x<width+60;x+=beatW*2){ctx.moveTo(x,baseline);ctx.lineTo(x+4,baseline-42);ctx.lineTo(x+9,baseline+17);ctx.lineTo(x+15,baseline)}
+      }else if(trace==="af"){
+        ctx.moveTo(0,baseline);
+        const irregular=[.72,1.18,.86,1.34,.64];let x=-40-(travel%60),n=0;
+        while(x<width+80){for(let f=x;f<x+34;f+=4)ctx.lineTo(f,baseline+Math.sin((f+time*.04)*.45)*3);x+=beatW*irregular[n++%irregular.length];ctx.lineTo(x,baseline);ctx.lineTo(x+5,baseline-48);ctx.lineTo(x+11,baseline+17);ctx.lineTo(x+18,baseline)}
+      }else if(trace==="paced"){
+        ctx.moveTo(0,baseline);
+        for(let x=-beatW+travel;x<width+beatW;x+=beatW){ctx.lineTo(x+beatW*.34,baseline);ctx.lineTo(x+beatW*.36,baseline-62);ctx.lineTo(x+beatW*.38,baseline);ctx.lineTo(x+beatW*.48,baseline+14);ctx.lineTo(x+beatW*.57,baseline-36);ctx.lineTo(x+beatW*.68,baseline+20);ctx.lineTo(x+beatW*.78,baseline);ctx.lineTo(x+beatW*.92,baseline-12);ctx.lineTo(x+beatW,baseline)}
       }else if(trace==="vf"){
         for(let x=0;x<=width;x+=3){const y=baseline+Math.sin((x+time*.12)*.16)*22+Math.sin((x-time*.08)*.41)*13+Math.sin(x*.07)*9;x?ctx.lineTo(x,y):ctx.moveTo(x,y)}
       }else if(trace==="asystole"){
@@ -68,11 +79,18 @@ export function EcgViewer({ trace = "normal", compact = false, focus, instructio
         const point=(x:number,y:number)=>ctx.lineTo(x,y);
         for(let i=-1;i<beats+1;i++){const o=i*beatW+travel;
           if(trace==="vt"||trace==="pvt"){point(o+beatW*.08,baseline);point(o+beatW*.25,baseline-45);point(o+beatW*.47,baseline+35);point(o+beatW*.68,baseline-30);point(o+beatW*.9,baseline)}
-          else{point(o+beatW*.10,baseline);point(o+beatW*.18,baseline-10);point(o+beatW*.26,baseline);point(o+beatW*.38,baseline);
-            if(trace==="rbbb"){point(o+beatW*.43,baseline+14);point(o+beatW*.48,baseline-45);point(o+beatW*.53,baseline+18);point(o+beatW*.61,baseline-32);point(o+beatW*.68,baseline)}
+          else{const ectopic=trace==="pvc"&&i%3===1;point(o+beatW*.10,baseline);if(trace!=="svt"&&!ectopic)point(o+beatW*.18,baseline-10);point(o+beatW*.26,baseline);point(o+beatW*.38,baseline);
+            if(ectopic){point(o+beatW*.39,baseline+18);point(o+beatW*.47,baseline-54);point(o+beatW*.58,baseline+31);point(o+beatW*.70,baseline)}
+            else if(trace==="rbbb"){point(o+beatW*.43,baseline+14);point(o+beatW*.48,baseline-45);point(o+beatW*.53,baseline+18);point(o+beatW*.61,baseline-32);point(o+beatW*.68,baseline)}
             else if(trace==="lbbb"){point(o+beatW*.43,baseline+15);point(o+beatW*.50,baseline-30);point(o+beatW*.59,baseline-42);point(o+beatW*.68,baseline)}
+            else if(trace==="lvh"){point(o+beatW*.44,baseline+30);point(o+beatW*.48,baseline-72);point(o+beatW*.53,baseline+26);point(o+beatW*.59,baseline)}
+            else if(trace==="lafb"){point(o+beatW*.43,baseline-34);point(o+beatW*.49,baseline+42);point(o+beatW*.56,baseline)}
             else{point(o+beatW*.44,baseline+12);point(o+beatW*.48,baseline-50);point(o+beatW*.52,baseline+20);point(o+beatW*.58,baseline)}
-            point(o+beatW*.70,baseline);point(o+beatW*.80,baseline-18);point(o+beatW*.93,baseline)}}
+            if(trace==="brugada"){point(o+beatW*.64,baseline-21);point(o+beatW*.73,baseline-19);point(o+beatW*.84,baseline+4);point(o+beatW*.95,baseline)}
+            else if(trace==="ischemia"){point(o+beatW*.66,baseline-19);point(o+beatW*.78,baseline-19);point(o+beatW*.87,baseline-31);point(o+beatW*.98,baseline)}
+            else if(trace==="qtlong"){point(o+beatW*.72,baseline);point(o+beatW*.90,baseline-17);point(o+beatW*1.08,baseline)}
+            else{point(o+beatW*.70,baseline);point(o+beatW*.80,baseline-18);point(o+beatW*.93,baseline)}}
+        }
       }
       ctx.stroke();frame=requestAnimationFrame(draw);
     };
