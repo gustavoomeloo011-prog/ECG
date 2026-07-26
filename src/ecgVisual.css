@@ -1,0 +1,14 @@
+.ecg-focus-help {
+  margin: -12px 0 18px;
+  padding: 9px 12px;
+  color: #b8cbc8;
+  background: rgba(88, 214, 181, .08);
+  border-left: 2px solid var(--mint);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.trace-comparison .ecg-focus-help {
+  margin-top: -12px;
+  min-height: 48px;
+}

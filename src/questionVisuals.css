@@ -1,0 +1,22 @@
+.trace-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.trace-comparison > div > small {
+  display: block;
+  margin: 12px 0 -14px;
+  font: 9px DM Mono;
+  color: var(--mint);
+}
+
+.question-panel .trace-comparison .ecg-frame {
+  height: 180px;
+}
+
+@media (max-width: 620px) {
+  .trace-comparison {
+    grid-template-columns: 1fr;
+  }
+}
