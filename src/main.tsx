@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import "./questionVisuals.css";
 import "./ecgVisual.css";
 import { createRoot } from "react-dom/client";
 import { EcgViewer } from "./EcgViewer";
-import { HeartActivation } from "./HeartActivation";
 import { BlackboardLesson } from "./BlackboardLesson";
 import { academyLessons, academyTrackNames, type AcademyLesson } from "./academy";
 import { feedbackProfiles, lessons, moduleInfo, questions, references, skillNames } from "./data";
@@ -16,6 +15,7 @@ const moduleOrder: ModuleId[] = ["ondas","ritmo","bloqueios"];
 const academyPracticeMap: Record<string,string> = Object.fromEntries(
   academyLessons.map(lesson=>[lesson.id,`academy-${lesson.id}-s01-q1`]),
 );
+const Heart3DLab=lazy(()=>import("./Heart3DLab").then(module=>({default:module.Heart3DLab})));
 
 function App(){
   const [view,setView]=useState<View>("home");
@@ -118,8 +118,9 @@ function Academy({progress,open}:{progress:Progress;open:(lesson:AcademyLesson)=
 }
 
 function AcademyLessonView({lesson,completed,complete,back,practice}:{lesson:AcademyLesson;completed:boolean;complete:()=>void;back:()=>void;practice?:()=>void}){
-  return <section><button className="back" onClick={back}>← Todas as aulas</button><div className="academy-lesson-head"><div><p className="eyebrow">AULA {String(lesson.order).padStart(2,"0")} · {academyTrackNames[lesson.track]}</p><h2>{lesson.title}</h2><p className="lesson-lead">{lesson.subtitle}</p><div className={`status ${lesson.status}`}>{lesson.status==="reviewed"?"revisada para o beta":lesson.status==="mapped"?"material localizado · revisão em andamento":"conteúdo ainda não liberado como critério"}</div></div><div><EcgViewer trace={lesson.visual}/><HeartActivation mode={lesson.visual}/></div></div>
+  return <section><button className="back" onClick={back}>← Todas as aulas</button><div className="academy-lesson-head"><div><p className="eyebrow">AULA {String(lesson.order).padStart(2,"0")} · {academyTrackNames[lesson.track]}</p><h2>{lesson.title}</h2><p className="lesson-lead">{lesson.subtitle}</p><div className={`status ${lesson.status}`}>{lesson.status==="reviewed"?"revisada para o beta":lesson.status==="mapped"?"material localizado · revisão em andamento":"conteúdo ainda não liberado como critério"}</div></div><div><EcgViewer trace={lesson.visual}/></div></div>
     <div className="objectives"><span>AO FINAL, VOCÊ DEVE CONSEGUIR</span>{lesson.objectives.map(o=><p key={o}>✓ {o}</p>)}</div>
+    <Suspense fallback={<div className="heart3d-loading">Preparando laboratório espacial…</div>}><Heart3DLab mode={lesson.visual}/></Suspense>
     {lesson.id==="emer-02"&&<div className="rhythm-gallery">{([["vf","Fibrilação ventricular","chocável"],["pvt","TV sem pulso","chocável"],["asystole","Assistolia","não chocável"],["pea","AESP","não chocável"]] as const).map(([trace,label,kind])=><article key={trace}><EcgViewer trace={trace} compact/><div><b>{label}</b><span className={kind==="chocável"?"shockable":"nonshockable"}>{kind}</span></div></article>)}</div>}
     {lesson.id==="cond-04"&&<div className="rhythm-gallery conduction-gallery">{([["av1","BAV de 1º grau","PR prolongado"],["mobitz1","BAV 2º · Mobitz I","PR aumenta"],["mobitz2","BAV 2º · Mobitz II","falha súbita"],["avcomplete","BAV de 3º grau","dissociação AV"]] as const).map(([trace,label,kind])=><article key={trace}><EcgViewer trace={trace} compact/><div><b>{label}</b><span>{kind}</span></div></article>)}</div>}
     <BlackboardLesson lesson={lesson} completed={completed} onComplete={complete}/>
