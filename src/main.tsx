@@ -13,10 +13,9 @@ import "./styles.css";
 
 type View = "home" | "academy" | "academyLesson" | "path" | "lesson" | "exercise" | "dashboard" | "errors" | "settings";
 const moduleOrder: ModuleId[] = ["ondas","ritmo","bloqueios"];
-const academyPracticeMap: Record<string,string> = {
-  "zero-01":"ond-003", "zero-02":"rit-001", "int-01":"ond-001",
-  "int-03":"rit-006", "cond-02":"blo-003",
-};
+const academyPracticeMap: Record<string,string> = Object.fromEntries(
+  academyLessons.map(lesson=>[lesson.id,`academy-${lesson.id}-01`]),
+);
 
 function App(){
   const [view,setView]=useState<View>("home");
@@ -40,7 +39,9 @@ function App(){
     if(!unlocked)return; setModule(id); setView("lesson");
   };
   const begin=(qst?:Question)=>{
-    const qn=qst||nextAdaptiveQuestion(progress,module);setQuestion(qn);setSelected(null);setAnswered(false);setHints(0);setStarted(Date.now());setView("exercise");
+    const qn=qst||nextAdaptiveQuestion(progress,module);
+    if(!qn){setView("dashboard");return;}
+    setQuestion(qn);setSelected(null);setAnswered(false);setHints(0);setStarted(Date.now());setView("exercise");
   };
   const answer=()=>{
     if(selected===null)return;

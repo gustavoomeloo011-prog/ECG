@@ -15,7 +15,9 @@ export function loadProgress(): Progress {
     return {
       ...emptyProgress, ...saved, version: 2,
       completedAcademyLessons: saved.completedAcademyLessons ?? [],
-      completedChallenges: saved.completedChallenges ?? [],
+      completedChallenges: saved.completedChallenges ?? [...new Set(
+        (saved.attempts ?? []).filter((attempt: Attempt)=>attempt.correct).map((attempt: Attempt)=>attempt.questionId),
+      )],
     };
   } catch { return emptyProgress; }
 }
@@ -52,7 +54,7 @@ export function scheduleReview(previous: ReviewItem | undefined, attempt: Attemp
   now.setDate(now.getDate() + days);
   return {
     questionId: attempt.questionId, dueAt: now.toISOString(), intervalDays: days,
-    repetitions: (previous?.repetitions || 0) + 1, understood: false,
+    repetitions: (previous?.repetitions || 0) + 1, understood: attempt.correct,
   };
 }
 
@@ -71,9 +73,11 @@ export function recommendation(progress: Progress) {
   return "Seu desempenho está estável. Misture uma questão de revisão com uma questão nova para consolidar a transferência.";
 }
 
-export function nextAdaptiveQuestion(progress: Progress, module?: string): Question {
+export function nextAdaptiveQuestion(progress: Progress, module?: string): Question | undefined {
   const lastQuestionId = progress.attempts.at(-1)?.questionId;
-  const eligible = questions.filter(q => !module || q.module === module);
+  const completed = new Set(progress.completedChallenges);
+  const eligible = questions.filter(q => (!module || q.module === module) && !completed.has(q.id));
+  if (!eligible.length) return undefined;
   const alternatives = eligible.filter(q => q.id !== lastQuestionId);
   const pool = alternatives.length ? alternatives : eligible;
   const due = progress.reviews

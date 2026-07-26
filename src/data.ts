@@ -1,4 +1,5 @@
 import type { Lesson, Question, ReferenceItem, SkillId } from "./types";
+import { academyLessons, type AcademyLesson } from "./academy";
 
 export const skillNames: Record<SkillId, string> = {
   onda_p: "Onda P", intervalo_pr: "Intervalo PR", complexo_qrs: "Complexo QRS",
@@ -6,6 +7,10 @@ export const skillNames: Record<SkillId, string> = {
   regularidade: "Regularidade", ritmo_sinusal: "Ritmo sinusal",
   qrs_alargado: "Duração do QRS", morfologia_v1: "Morfologia em V1",
   morfologia_lateral: "Morfologia lateral", diferenciar_brd_bre: "BRD × BRE",
+  fundamentos_eletricos: "Fundamentos elétricos", leitura_sistematica: "Leitura sistemática",
+  sobrecargas: "Sobrecargas", conducao_av: "Condução AV", arritmias: "Arritmias",
+  repolarizacao: "Repolarização", marcapasso: "Marcapasso",
+  metodos_complementares: "Métodos complementares", emergencias: "Emergências",
 };
 
 export const moduleInfo = {
@@ -52,7 +57,7 @@ const q = (
   type: "choice", ...extra,
 });
 
-export const questions: Question[] = [
+const coreQuestions: Question[] = [
   q("ond-001","ondas","Qual elemento representa habitualmente a despolarização atrial?",["Onda P","Complexo QRS","Onda T","Segmento ST"],0,["onda_p"],"A onda P corresponde à ativação elétrica dos átrios.",{type:"visual"}),
   q("ond-002","ondas","O intervalo PR começa e termina, respectivamente, em:",["Início de P e início do QRS","Fim de P e fim do QRS","Início do QRS e fim de T","Fim do QRS e início de T"],0,["intervalo_pr"],"O PR inclui a onda P e o tempo de condução até o início da ativação ventricular."),
   q("ond-003","ondas","O complexo QRS está mais diretamente relacionado a:",["Repolarização atrial isolada","Despolarização ventricular","Repolarização ventricular","Pausa elétrica completa"],1,["complexo_qrs"],"O QRS registra a ativação ventricular.",{type:"boolean"}),
@@ -80,6 +85,64 @@ export const questions: Question[] = [
   q("blo-007","bloqueios","Qual justificativa é mais forte?",["Parece BRD","QRS largo e padrão terminal coerente em V1 e lateral","O computador escreveu BRD","A frequência é 70"],1,["qrs_alargado","morfologia_v1","morfologia_lateral"],"A justificativa deve explicitar os achados usados.",{difficulty:2,points:40,reviewed:true}),
   q("blo-exam","bloqueios","Monte a conclusão: QRS alargado, terminal positivo em V1, S terminal lateral.",["Padrão compatível com BRD","Padrão compatível com BRE","Ritmo de parada","Sem alteração de condução"],0,["qrs_alargado","morfologia_v1","morfologia_lateral","diferenciar_brd_bre"],"O conjunto sustenta padrão compatível com BRD. Este beta não substitui avaliação clínica.",{type:"report",difficulty:3,points:100,exam:true,reviewed:true}),
 ];
+
+const trackSkill: Record<AcademyLesson["track"], SkillId> = {
+  "comece-aqui":"fundamentos_eletricos",
+  interpretacao:"leitura_sistematica",
+  conducao:"conducao_av",
+  arritmias:"arritmias",
+  repolarizacao:"repolarizacao",
+  metodos:"metodos_complementares",
+  marcapasso:"marcapasso",
+  emergencias:"emergencias",
+};
+
+const trackModule: Record<AcademyLesson["track"], Question["module"]> = {
+  "comece-aqui":"ondas", interpretacao:"ondas", repolarizacao:"ondas", metodos:"ondas",
+  arritmias:"ritmo", emergencias:"ritmo", conducao:"bloqueios", marcapasso:"bloqueios",
+};
+
+function academyChallenge(lesson: AcademyLesson, challengeIndex: 0|1): Question {
+  const targetIndex=challengeIndex===0?0:lesson.steps.length-1;
+  const target=lesson.steps[targetIndex];
+  const otherSteps=lesson.steps.filter((_,index)=>index!==targetIndex);
+  const distractors=[
+    ...otherSteps.map(step=>step.explanation),
+    ...lesson.objectives.map(objective=>`O objetivo principal é apenas ${objective.toLowerCase()}, sem integrar os demais achados.`),
+    "O padrão visual isolado encerra a interpretação e dispensa a sequência sistemática.",
+  ].filter(text=>text!==target.explanation).slice(0,3);
+  while(distractors.length<3)distractors.push("A conclusão pode ser feita sem conferir técnica, contexto ou relação entre os eventos.");
+  const answer=(lesson.order+challengeIndex)%4;
+  const options=[...distractors];
+  options.splice(answer,0,target.explanation);
+  return {
+    id:`academy-${lesson.id}-0${challengeIndex+1}`,
+    module:trackModule[lesson.track],
+    topic:lesson.id,
+    prompt:`Em “${lesson.title}”, qual afirmação explica corretamente “${target.title}”?`,
+    type:challengeIndex===0?"choice":"report",
+    options,
+    answer,
+    explanation:target.explanation,
+    alternativeExplanation:target.checkpoint,
+    skills:[trackSkill[lesson.track]],
+    difficulty:challengeIndex===0?1:2,
+    points:challengeIndex===0?25:40,
+    errorType:challengeIndex===0?"conceitual":"aplicacao",
+    trace:lesson.visual,
+    visualFocus:lesson.track==="repolarizacao"?"t":lesson.track==="arritmias"||lesson.track==="emergencias"?"rr":lesson.track==="conducao"?"terminal":undefined,
+    visualInstruction:`Use o traçado como apoio e relacione-o ao conceito central da aula ${lesson.order}.`,
+    reviewed:lesson.status==="reviewed",
+    sourceIds:[`incor-aula-${lesson.sourceCourseId}`,lesson.track==="emergencias"?"aha-2025-cardiac-arrest":"aha-ecg-part-i"],
+  };
+}
+
+const academyQuestions=academyLessons.flatMap(lesson=>[
+  academyChallenge(lesson,0),
+  academyChallenge(lesson,1),
+]);
+
+export const questions: Question[]=[...coreQuestions,...academyQuestions];
 
 export const references: ReferenceItem[] = [
   { id:"incor-modulo-interpretacao", title:"Curso estudado pelo usuário — módulo de interpretação básica", role:"pedagogical", note:"Eixo de ordem e método. Texto do aplicativo é original e não reproduz material do curso." },

@@ -2,7 +2,10 @@ export type ModuleId = "ondas" | "ritmo" | "bloqueios";
 export type SkillId =
   | "onda_p" | "intervalo_pr" | "complexo_qrs" | "segmento_st" | "onda_t"
   | "frequencia" | "regularidade" | "ritmo_sinusal"
-  | "qrs_alargado" | "morfologia_v1" | "morfologia_lateral" | "diferenciar_brd_bre";
+  | "qrs_alargado" | "morfologia_v1" | "morfologia_lateral" | "diferenciar_brd_bre"
+  | "fundamentos_eletricos" | "leitura_sistematica" | "sobrecargas"
+  | "conducao_av" | "arritmias" | "repolarizacao" | "marcapasso"
+  | "metodos_complementares" | "emergencias";
 export type QuestionType = "choice" | "boolean" | "visual" | "order" | "compare" | "report";
 export type ErrorType =
   | "conceitual" | "reconhecimento_visual" | "calculo" | "medicao"
