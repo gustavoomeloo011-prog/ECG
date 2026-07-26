@@ -67,12 +67,14 @@ export interface ReviewItem {
 }
 
 export interface Progress {
-  version: 1;
+  version: 2;
   points: number;
   streak: number;
   studyStreak: number;
   lastStudyDate?: string;
   completedLessons: string[];
+  completedAcademyLessons: string[];
+  completedChallenges: string[];
   attempts: Attempt[];
   reviews: ReviewItem[];
   achievements: string[];

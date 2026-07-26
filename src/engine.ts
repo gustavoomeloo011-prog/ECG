@@ -2,14 +2,21 @@ import { questions } from "./data";
 import type { Attempt, Progress, Question, ReviewItem, SkillId } from "./types";
 
 export const emptyProgress: Progress = {
-  version: 1, points: 0, streak: 0, studyStreak: 0,
-  completedLessons: [], attempts: [], reviews: [], achievements: [],
+  version: 2, points: 0, streak: 0, studyStreak: 0,
+  completedLessons: [], completedAcademyLessons: [], completedChallenges: [],
+  attempts: [], reviews: [], achievements: [],
 };
 
 export function loadProgress(): Progress {
   try {
     const raw = localStorage.getItem("ecg-trainer-progress-v1");
-    return raw ? { ...emptyProgress, ...JSON.parse(raw) } : emptyProgress;
+    if (!raw) return emptyProgress;
+    const saved = JSON.parse(raw);
+    return {
+      ...emptyProgress, ...saved, version: 2,
+      completedAcademyLessons: saved.completedAcademyLessons ?? [],
+      completedChallenges: saved.completedChallenges ?? [],
+    };
   } catch { return emptyProgress; }
 }
 

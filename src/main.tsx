@@ -4,6 +4,7 @@ import "./ecgVisual.css";
 import { createRoot } from "react-dom/client";
 import { EcgViewer } from "./EcgViewer";
 import { HeartActivation } from "./HeartActivation";
+import { BlackboardLesson } from "./BlackboardLesson";
 import { academyLessons, academyTrackNames, type AcademyLesson } from "./academy";
 import { lessons, moduleInfo, questions, references, skillNames } from "./data";
 import { classifyAttempt, emptyProgress, loadProgress, nextAdaptiveQuestion, recommendation, saveProgress, scheduleReview, skillMastery } from "./engine";
@@ -52,7 +53,9 @@ function App(){
     if(progress.attempts.length===0&&!nextAchievements.includes("Primeiro traçado"))nextAchievements.push("Primeiro traçado");
     if(progress.streak+1>=5&&attempt.correct&&!nextAchievements.includes("Cinco com método"))nextAchievements.push("Cinco com método");
     setProgress(p=>({...p,points:p.points+earned,streak:attempt.correct?p.streak+1:0,
-      attempts:[...p.attempts,attempt],reviews:[...p.reviews.filter(r=>r.questionId!==question.id),review],achievements:nextAchievements}));
+      attempts:[...p.attempts,attempt],reviews:[...p.reviews.filter(r=>r.questionId!==question.id),review],
+      completedChallenges:attempt.correct?[...new Set([...p.completedChallenges,question.id])]:p.completedChallenges,
+      achievements:nextAchievements}));
     setAnswered(true);
   };
   const nav=(v:View,label:string)=><button className={view===v?"active":""} onClick={()=>setView(v)}>{label}</button>;
@@ -63,8 +66,8 @@ function App(){
     </header>
     <main>
       {view==="home"&&<Home progress={progress} start={()=>openModule("ondas")} dashboard={()=>setView("dashboard")}/>}
-      {view==="academy"&&<Academy open={(lesson)=>{setAcademyLesson(lesson);setView("academyLesson")}}/>}
-      {view==="academyLesson"&&<AcademyLessonView lesson={academyLesson} back={()=>setView("academy")} practice={academyPracticeMap[academyLesson.id]?()=>begin(questions.find(q=>q.id===academyPracticeMap[academyLesson.id])):undefined}/>}
+      {view==="academy"&&<Academy progress={progress} open={(lesson)=>{setAcademyLesson(lesson);setView("academyLesson")}}/>}
+      {view==="academyLesson"&&<AcademyLessonView lesson={academyLesson} completed={progress.completedAcademyLessons.includes(academyLesson.id)} complete={()=>setProgress(p=>({...p,completedAcademyLessons:[...new Set([...p.completedAcademyLessons,academyLesson.id])],points:p.completedAcademyLessons.includes(academyLesson.id)?p.points:p.points+30}))} back={()=>setView("academy")} practice={academyPracticeMap[academyLesson.id]?()=>begin(questions.find(q=>q.id===academyPracticeMap[academyLesson.id])):undefined}/>}
       {view==="path"&&<Path progress={progress} openModule={openModule}/>}
       {view==="lesson"&&<LessonView lesson={lesson} complete={()=>{setProgress(p=>({...p,completedLessons:[...new Set([...p.completedLessons,lesson.id])]}));begin(questions.find(q=>q.module===module));}}/>}
       {view==="exercise"&&<Exercise question={question} selected={selected} setSelected={setSelected} answered={answered} answer={answer} hints={hints} setHints={setHints} confidence={confidence} setConfidence={setConfidence} next={()=>begin(nextAdaptiveQuestion(progress,module))}/>}
@@ -84,30 +87,33 @@ function Home({progress,start,dashboard}:{progress:Progress;start:()=>void;dashb
       <div className="hero-actions"><button className="primary" onClick={start}>{progress.attempts.length?"Continuar treino":"Começar pelo básico"} <span>→</span></button><button className="secondary" onClick={dashboard}>Ver meu domínio</button></div>
       <div className="warning">Finalidade exclusivamente educacional. Não use isoladamente para diagnóstico, tratamento ou decisão clínica.</div>
     </div>
-    <div className="hero-card"><div className="card-top"><span>SESSÃO DE HOJE</span><b>{completed}/24</b></div><EcgViewer trace="normal"/><div className="quick-stats"><div><strong>{progress.streak}</strong><span>sequência</span></div><div><strong>{progress.points}</strong><span>pontos</span></div><div><strong>{progress.reviews.filter(r=>!r.understood).length}</strong><span>revisões</span></div></div></div>
+    <div className="hero-card"><div className="card-top"><span>PROGRESSO DO BETA</span><b>{progress.completedAcademyLessons.length}/{academyLessons.length} aulas · {completed}/{questions.length} desafios</b></div><EcgViewer trace="normal"/><div className="quick-stats"><div><strong>{progress.completedAcademyLessons.length}</strong><span>aulas concluídas</span></div><div><strong>{progress.completedChallenges.length}</strong><span>desafios concluídos</span></div><div><strong>{progress.reviews.filter(r=>!r.understood).length}</strong><span>revisões</span></div></div></div>
   </section>
 }
 
-function Academy({open}:{open:(lesson:AcademyLesson)=>void}){
+function Academy({progress,open}:{progress:Progress;open:(lesson:AcademyLesson)=>void}){
+  const done=progress.completedAcademyLessons.length;
   return <section><div className="section-head"><p className="eyebrow">AULAS · DO ZERO AO RACIOCÍNIO CLÍNICO</p><h2>Entenda antes de treinar</h2><p>Sequência autoral baseada no eixo pedagógico do curso estudado. Material apenas mapeado não é tratado como critério revisado.</p></div>
-    <div className="academy-flow">{Object.entries(academyTrackNames).map(([track,label])=><section key={track} className="academy-track"><div className="track-label"><span>{label}</span><i/></div><div className="academy-list">{academyLessons.filter(l=>l.track===track).map(l=><button key={l.id} onClick={()=>open(l)} className="academy-card"><span className="academy-order">{String(l.order).padStart(2,"0")}</span><div><small>{l.duration} · {l.steps.length} ETAPAS</small><h3>{l.title}</h3><p>{l.subtitle}</p><div className={`status ${l.status}`}>{l.status==="reviewed"?"conteúdo revisado":l.status==="mapped"?"aula mapeada · revisão em andamento":"validação pendente"}</div></div><b>→</b></button>)}</div></section>)}</div>
+    <div className="completion-summary"><div><span>AULAS CONCLUÍDAS</span><b>{done}/{academyLessons.length}</b></div><div className="completion-bar"><i style={{width:`${done/academyLessons.length*100}%`}}/></div><p>{done===academyLessons.length?"Trilha atual concluída. Continue pelas revisões.":"Cada aula é marcada somente após chegar ao final da lousa guiada."}</p></div>
+    <div className="academy-flow">{Object.entries(academyTrackNames).map(([track,label])=><section key={track} className="academy-track"><div className="track-label"><span>{label}</span><i/></div><div className="academy-list">{academyLessons.filter(l=>l.track===track).map(l=>{const completed=progress.completedAcademyLessons.includes(l.id);return <button key={l.id} onClick={()=>open(l)} className={`academy-card ${completed?"completed":""}`}><span className="academy-order">{completed?"✓":String(l.order).padStart(2,"0")}</span><div><small>{l.duration} · {l.steps.length} ETAPAS · {completed?"CONCLUÍDA":"NÃO CONCLUÍDA"}</small><h3>{l.title}</h3><p>{l.subtitle}</p><div className={`status ${l.status}`}>{l.status==="reviewed"?"conteúdo revisado":l.status==="mapped"?"aula mapeada · revisão em andamento":"validação pendente"}</div></div><b>→</b></button>})}</div></section>)}</div>
     <div className="warning">A trilha crescerá com a revisão das videoaulas, apresentações e discussões de casos. Nenhum critério pendente será apresentado como regra definitiva.</div>
   </section>
 }
 
-function AcademyLessonView({lesson,back,practice}:{lesson:AcademyLesson;back:()=>void;practice?:()=>void}){
+function AcademyLessonView({lesson,completed,complete,back,practice}:{lesson:AcademyLesson;completed:boolean;complete:()=>void;back:()=>void;practice?:()=>void}){
   return <section><button className="back" onClick={back}>← Todas as aulas</button><div className="academy-lesson-head"><div><p className="eyebrow">AULA {String(lesson.order).padStart(2,"0")} · {academyTrackNames[lesson.track]}</p><h2>{lesson.title}</h2><p className="lesson-lead">{lesson.subtitle}</p><div className={`status ${lesson.status}`}>{lesson.status==="reviewed"?"revisada para o beta":lesson.status==="mapped"?"material localizado · revisão em andamento":"conteúdo ainda não liberado como critério"}</div></div><div><EcgViewer trace={lesson.visual}/><HeartActivation mode={lesson.visual}/></div></div>
     <div className="objectives"><span>AO FINAL, VOCÊ DEVE CONSEGUIR</span>{lesson.objectives.map(o=><p key={o}>✓ {o}</p>)}</div>
     {lesson.id==="emer-02"&&<div className="rhythm-gallery">{([["vf","Fibrilação ventricular","chocável"],["pvt","TV sem pulso","chocável"],["asystole","Assistolia","não chocável"],["pea","AESP","não chocável"]] as const).map(([trace,label,kind])=><article key={trace}><EcgViewer trace={trace} compact/><div><b>{label}</b><span className={kind==="chocável"?"shockable":"nonshockable"}>{kind}</span></div></article>)}</div>}
     {lesson.id==="cond-04"&&<div className="rhythm-gallery conduction-gallery">{([["av1","BAV de 1º grau","PR prolongado"],["mobitz1","BAV 2º · Mobitz I","PR aumenta"],["mobitz2","BAV 2º · Mobitz II","falha súbita"],["avcomplete","BAV de 3º grau","dissociação AV"]] as const).map(([trace,label,kind])=><article key={trace}><EcgViewer trace={trace} compact/><div><b>{label}</b><span>{kind}</span></div></article>)}</div>}
-    <div className="lesson-steps">{lesson.steps.map((step,i)=><article key={step.title}><span>{String(i+1).padStart(2,"0")}</span><div><h3>{step.title}</h3><p>{step.explanation}</p><aside><b>Pare e confira</b>{step.checkpoint}</aside></div></article>)}</div>
-    <div className="lesson-finish"><div><b>Não avance por reconhecimento visual apenas.</b><p>Explique o conceito com suas palavras e só então aplique em um desafio.</p></div>{practice?<button className="primary" onClick={practice}>Praticar esta habilidade →</button>:<button className="secondary" disabled>Desafio validado em preparação</button>}</div>
+    <BlackboardLesson lesson={lesson} completed={completed} onComplete={complete}/>
+    <div className="lesson-finish"><div><b>{completed?"Aula concluída e registrada.":"Conclua todas as etapas da lousa."}</b><p>Explique o conceito com suas palavras e só então aplique em um desafio.</p></div>{practice?<button className="primary" disabled={!completed} onClick={practice}>Praticar esta habilidade →</button>:<button className="secondary" disabled>Desafio validado em preparação</button>}</div>
   </section>
 }
 
 function Path({progress,openModule}:{progress:Progress;openModule:(m:ModuleId)=>void}){
   return <section><div className="section-head"><p className="eyebrow">TRILHA INICIAL</p><h2>Do sinal ao raciocínio</h2><p>Os módulos abrem conforme você demonstra os passos anteriores.</p></div>
-    <div className="module-grid">{moduleOrder.map((id,i)=>{const info=moduleInfo[id];const unlocked=i===0||progress.attempts.some(a=>a.module===moduleOrder[i-1]&&a.correct);const correct=new Set(progress.attempts.filter(a=>a.module===id&&a.correct).map(a=>a.questionId)).size;return <button key={id} className={`module-card ${unlocked?"":"locked"}`} onClick={()=>openModule(id)} style={{"--accent":info.color} as React.CSSProperties}><span className="module-no">{info.number}</span><div><small>{unlocked?`${correct}/8 DESAFIOS`:"BLOQUEADO"}</small><h3>{info.title}</h3><p>{info.subtitle}</p><div className="mini-progress"><i style={{width:`${correct/8*100}%`}}/></div></div><b>{unlocked?"→":"⌾"}</b></button>})}</div>
+    <div className="completion-summary"><div><span>DESAFIOS CONCLUÍDOS</span><b>{progress.completedChallenges.length}/{questions.length}</b></div><div className="completion-bar"><i style={{width:`${progress.completedChallenges.length/questions.length*100}%`}}/></div><p>Um desafio conta como concluído depois de uma resposta correta; tentativas e erros continuam registrados.</p></div>
+    <div className="module-grid">{moduleOrder.map((id,i)=>{const info=moduleInfo[id];const unlocked=i===0||progress.attempts.some(a=>a.module===moduleOrder[i-1]&&a.correct);const total=questions.filter(q=>q.module===id).length;const correct=new Set(progress.attempts.filter(a=>a.module===id&&a.correct).map(a=>a.questionId)).size;return <button key={id} className={`module-card ${unlocked?"":"locked"}`} onClick={()=>openModule(id)} style={{"--accent":info.color} as React.CSSProperties}><span className="module-no">{correct===total?"✓":info.number}</span><div><small>{unlocked?`${correct}/${total} DESAFIOS · ${correct===total?"CONCLUÍDO":"EM ANDAMENTO"}`:"BLOQUEADO"}</small><h3>{info.title}</h3><p>{info.subtitle}</p><div className="mini-progress"><i style={{width:`${correct/total*100}%`}}/></div></div><b>{unlocked?"→":"⌾"}</b></button>})}</div>
   </section>
 }
 
