@@ -19,6 +19,124 @@ export const moduleInfo = {
   bloqueios: { number: "03", title: "Bloqueios de ramo", subtitle: "Leia a ativação ventricular tardia", color: "#ee7b72" },
 } as const;
 
+export interface FeedbackProfile {
+  reasoning: string;
+  examples: {label:string; text:string}[];
+  measurements?: {label:string; value:string; note:string}[];
+  spectrum: {label:string; tone:"common"|"attention"|"urgent"; text:string}[];
+}
+
+export const feedbackProfiles: Partial<Record<SkillId,FeedbackProfile>> = {
+  fundamentos_eletricos:{
+    reasoning:"O erro mais comum é tratar uma onda como um desenho fixo. A forma depende da direção e da magnitude do vetor naquele instante, projetadas sobre o eixo da derivação.",
+    examples:[
+      {label:"Aproximação",text:"Vetor dirigido ao polo positivo tende a produzir deflexão positiva."},
+      {label:"Afastamento",text:"Vetor que se afasta do polo positivo tende a produzir deflexão negativa."},
+      {label:"Perpendicular",text:"Uma força aproximadamente perpendicular pode gerar pequena deflexão ou complexo bifásico."},
+      {label:"Alça vetorial",text:"Vários vetores instantâneos sucessivos formam uma trajetória; cada derivação mostra uma projeção diferente dessa alça."},
+    ],
+    measurements:[
+      {label:"Calibração usual",value:"25 mm/s · 10 mm/mV",note:"Confirme sempre no registro antes de medir tempo ou voltagem."},
+      {label:"1 quadrado pequeno",value:"40 ms · 0,1 mV",note:"Valores válidos quando velocidade e ganho são os usuais."},
+      {label:"1 quadrado grande",value:"200 ms · 0,5 mV",note:"Cinco quadrados grandes correspondem a 1 segundo."},
+    ],
+    spectrum:[
+      {label:"Variação comum",tone:"common",text:"Uma mesma ativação pode ser positiva em uma derivação e negativa em outra."},
+      {label:"Exige atenção",tone:"attention",text:"Uma morfologia inesperada deve ser conferida em derivações vizinhas, calibração e posicionamento dos eletrodos."},
+      {label:"Situação crítica",tone:"urgent",text:"Atividade elétrica no monitor não comprova pulso ou contração eficaz; em contexto real, avaliação clínica imediata é indispensável."},
+    ],
+  },
+  leitura_sistematica:{
+    reasoning:"Uma medida isolada perde valor quando o início, o fim, a calibração ou a derivação estão errados. O raciocínio correto começa validando o registro.",
+    examples:[
+      {label:"PR",text:"É medido do início da onda P ao início do QRS; não começa no fim da P."},
+      {label:"QRS",text:"Meça do primeiro desvio do basal ao retorno final do complexo, conferindo mais de uma derivação."},
+      {label:"ST",text:"Começa no ponto J, após o fim do QRS; sua interpretação depende das derivações contíguas e do contexto."},
+    ],
+    measurements:[
+      {label:"Onda P",value:"geralmente <120 ms",note:"Amplitude e duração dependem da derivação e do contexto."},
+      {label:"Intervalo PR",value:"120–200 ms em adultos",note:"Frequência, idade e situação clínica podem modificar a interpretação."},
+      {label:"QRS",value:"<120 ms para não ser classificado como QRS largo",note:"Valores >110 ms já podem ser anormais; bloqueio completo exige também morfologia compatível."},
+    ],
+    spectrum:[
+      {label:"Comum",tone:"common",text:"Pequenas diferenças entre derivações ou medição manual e automática podem ocorrer."},
+      {label:"Limítrofe",tone:"attention",text:"Valor próximo do limite pede nova medição, outra derivação e conferência da calibração."},
+      {label:"Importante",tone:"urgent",text:"Alteração nova associada a sintomas ou mudanças de ST/T exige avaliação clínica; o jogo não define conduta."},
+    ],
+  },
+  sobrecargas:{
+    reasoning:"Voltagem alta não equivale automaticamente a hipertrofia. Idade, sexo, biotipo, posicionamento dos eletrodos e bloqueios alteram a sensibilidade dos critérios.",
+    examples:[
+      {label:"Força atrial direita",text:"P mais alta nas derivações inferiores é uma pista; descreva amplitude e derivações antes do rótulo."},
+      {label:"Força atrial esquerda",text:"P prolongada e componente terminal negativo em V1 são pistas que devem ser integradas."},
+      {label:"Força ventricular",text:"Voltagem, eixo, progressão precordial e repolarização precisam formar um conjunto coerente."},
+    ],
+    measurements:[
+      {label:"P em adultos",value:"duração ≥120 ms é uma pista de atraso atrial",note:"Não determina isoladamente aumento anatômico."},
+      {label:"P inferior",value:">2,5 mm é uma pista de força atrial direita",note:"Exige morfologia e contexto compatíveis."},
+      {label:"Sokolow–Lyon",value:"S em V1 + R em V5/V6 ≥35 mm",note:"É apenas um critério de voltagem para HVE, com limitações importantes."},
+    ],
+    spectrum:[
+      {label:"Comum",tone:"common",text:"Voltagem alta isolada pode ocorrer em pessoas jovens ou magras."},
+      {label:"Associado",tone:"attention",text:"Voltagem com eixo e alterações secundárias de ST/T aumenta a coerência do padrão."},
+      {label:"Mais importante",tone:"urgent",text:"ECG não mede massa ou espessura diretamente; suspeita relevante deve ser integrada a imagem e contexto clínico."},
+    ],
+  },
+  conducao_av:{
+    reasoning:"Bloqueio AV é uma relação temporal entre P e QRS. Uma única pausa ou uma única medida de PR não descreve a dinâmica.",
+    examples:[
+      {label:"1º grau",text:"Todas as ondas P conduzem; o PR permanece prolongado."},
+      {label:"Mobitz I",text:"O PR se modifica progressivamente antes de uma P não conduzida."},
+      {label:"Mobitz II",text:"Uma P deixa de conduzir sem o prolongamento progressivo típico do tipo I."},
+      {label:"Bloqueio total",text:"P e QRS mantêm ritmos independentes, sem relação fixa."},
+    ],
+    measurements:[
+      {label:"PR prolongado",value:">200 ms em adultos",note:"Com condução 1:1, descreve atraso AV de primeiro grau."},
+      {label:"Condução 2:1",value:"1 QRS para cada 2 ondas P",note:"O traçado isolado pode não permitir classificar como Mobitz I ou II."},
+    ],
+    spectrum:[
+      {label:"Menor grau",tone:"common",text:"Atraso AV de primeiro grau mantém condução 1:1."},
+      {label:"Intermediário",tone:"attention",text:"Segundo grau apresenta falha intermitente de condução e exige análise de vários ciclos."},
+      {label:"Maior gravidade potencial",tone:"urgent",text:"Bloqueio avançado ou total pode ser emergência quando associado a sintomas ou instabilidade."},
+    ],
+  },
+  arritmias:{
+    reasoning:"O nome do ritmo deve vir depois de frequência, regularidade, largura do QRS, atividade atrial e relação P–QRS.",
+    examples:[
+      {label:"Regular e estreito",text:"Restringe hipóteses, mas não define sozinho o mecanismo supraventricular."},
+      {label:"Irregularmente irregular",text:"Sugere fibrilação atrial quando não há P organizada, mas artefato e extrassístoles precisam ser excluídos."},
+      {label:"Taquicardia larga",text:"Deve ser tratada como problema de alto risco na prática até avaliação especializada; no jogo, foque na descrição."},
+    ],
+    measurements:[
+      {label:"QRS estreito",value:"<120 ms",note:"Favorece ativação ventricular pelo sistema normal, sem determinar sozinho a origem."},
+      {label:"QRS largo",value:"≥120 ms",note:"Pode ocorrer em ritmo ventricular, aberrância, bloqueio prévio ou pré-excitação."},
+    ],
+    spectrum:[
+      {label:"Comum",tone:"common",text:"Extrassístoles isoladas podem ocorrer, mas frequência, morfologia e contexto importam."},
+      {label:"Requer avaliação",tone:"attention",text:"Taquicardia sustentada, sintomas ou QRS largo aumentam a preocupação."},
+      {label:"Crítico",tone:"urgent",text:"FV e TV sem pulso são ritmos chocáveis; assistolia e AESP não são chocáveis. O reconhecimento real exige protocolo de emergência."},
+    ],
+  },
+  emergencias:{
+    reasoning:"O traçado é apenas uma parte da avaliação. A presença ou ausência de pulso muda completamente a classificação e a resposta.",
+    examples:[
+      {label:"FV",text:"Atividade caótica sem complexos organizados; ritmo chocável em parada."},
+      {label:"TV sem pulso",text:"Ritmo ventricular rápido e organizado, mas sem pulso; chocável."},
+      {label:"Assistolia",text:"Ausência de atividade ventricular detectável após excluir cabos, ganho e FV fina; não chocável."},
+      {label:"AESP",text:"Atividade elétrica organizada sem pulso detectável; não chocável."},
+    ],
+    spectrum:[
+      {label:"Não é parada",tone:"common",text:"Pessoa responsiva e com pulso exige outra abordagem, mesmo com traçado anormal."},
+      {label:"Suspeita",tone:"attention",text:"Inconsciência, respiração ausente ou agônica exige ativação imediata do sistema de emergência."},
+      {label:"Parada",tone:"urgent",text:"Sem pulso: iniciar RCP e usar DEA/desfibrilador conforme protocolo. Esta plataforma não substitui treinamento certificado."},
+    ],
+  },
+};
+
+for(const skill of ["onda_p","intervalo_pr","complexo_qrs","segmento_st","onda_t"] as SkillId[]) feedbackProfiles[skill]=feedbackProfiles.leitura_sistematica;
+for(const skill of ["frequencia","regularidade","ritmo_sinusal"] as SkillId[]) feedbackProfiles[skill]=feedbackProfiles.arritmias;
+for(const skill of ["qrs_alargado","morfologia_v1","morfologia_lateral","diferenciar_brd_bre"] as SkillId[]) feedbackProfiles[skill]=feedbackProfiles.arritmias;
+
 export const lessons: Lesson[] = [
   {
     id: "ondas-01", module: "ondas", title: "Uma frase elétrica",
@@ -115,6 +233,9 @@ function academyChallenge(lesson: AcademyLesson, stepIndex: number, variant: 0|1
   while(distractors.length<3)distractors.push("Uma única aparência visual encerra o raciocínio e dispensa a análise sistemática.");
   const answer=(lesson.order+stepIndex+variant)%4;
   const options=[...distractors]; options.splice(answer,0,correct);
+  const optionFeedback=options.map((_,index)=>index===answer
+    ?`Esta alternativa responde diretamente a “${target.title}” e preserva a sequência ensinada na aula.`
+    :`A alternativa escolhida desloca o foco para outro conceito ou encerra o raciocínio cedo demais. Em “${target.title}”, era necessário manter mecanismo, sequência e contexto ligados.`);
   const prompts=[
     `Qual explicação constrói corretamente o conceito “${target.title}”?`,
     `Ao revisar “${target.title}”, qual frase deve funcionar como checagem de segurança?`,
@@ -127,6 +248,7 @@ function academyChallenge(lesson: AcademyLesson, stepIndex: number, variant: 0|1
     prompt:`${lesson.title}: ${prompts[variant]}`,
     type:variant===0?"choice":variant===1?"compare":"report",
     options,
+    optionFeedback,
     answer,
     explanation:variant===1?target.checkpoint:target.explanation,
     alternativeExplanation:variant===1?target.explanation:target.checkpoint,

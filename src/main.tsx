@@ -6,7 +6,7 @@ import { EcgViewer } from "./EcgViewer";
 import { HeartActivation } from "./HeartActivation";
 import { BlackboardLesson } from "./BlackboardLesson";
 import { academyLessons, academyTrackNames, type AcademyLesson } from "./academy";
-import { lessons, moduleInfo, questions, references, skillNames } from "./data";
+import { feedbackProfiles, lessons, moduleInfo, questions, references, skillNames } from "./data";
 import { classifyAttempt, emptyProgress, loadProgress, nextAdaptiveQuestion, recommendation, saveProgress, scheduleReview, skillMastery } from "./engine";
 import type { ModuleId, Progress, Question } from "./types";
 import "./styles.css";
@@ -129,10 +129,20 @@ function LessonView({lesson,complete}:{lesson:typeof lessons[number];complete:()
 
 function Exercise({question,selected,setSelected,answered,answer,hints,setHints,confidence,setConfidence,next}:{question:Question;selected:number|null;setSelected:(n:number)=>void;answered:boolean;answer:()=>void;hints:number;setHints:(n:number)=>void;confidence:number;setConfidence:(n:number)=>void;next:()=>void}){
   const correct=selected===question.answer;
+  const profile=feedbackProfiles[question.skills[0]];
   return <section className="exercise-layout"><div className="question-panel"><div className="question-meta"><span>{moduleInfo[question.module].title}</span><b>{question.exam?"PROVA DO MÓDULO":question.type.toUpperCase()}</b><i>Dificuldade {question.difficulty}</i></div><h2>{question.prompt}</h2><div className={question.secondaryTrace?"trace-comparison":""}><div>{question.secondaryTrace&&<small>PADRÃO A</small>}<EcgViewer trace={question.trace} focus={question.visualFocus} instruction={question.visualInstruction}/></div>{question.secondaryTrace&&<div><small>PADRÃO B</small><EcgViewer trace={question.secondaryTrace} focus={question.visualFocus} instruction={question.visualInstruction}/></div>}</div>
     <div className="options">{question.options.map((o,i)=><button key={o} disabled={answered} className={`${selected===i?"selected":""} ${answered&&i===question.answer?"correct":""} ${answered&&selected===i&&i!==question.answer?"wrong":""}`} onClick={()=>setSelected(i)}><span>{String.fromCharCode(65+i)}</span>{o}</button>)}</div>
     {!answered&&<div className="answer-bar"><label>Confiança <select value={confidence} onChange={e=>setConfidence(+e.target.value)}><option value="1">1 — chute</option><option value="2">2 — baixa</option><option value="3">3 — média</option><option value="4">4 — alta</option><option value="5">5 — certeza</option></select></label><button className="hint" onClick={()=>setHints(hints+1)}>Dica {hints?`(${hints})`:""}</button><button className="primary" disabled={selected===null} onClick={answer}>Responder</button></div>}
-  </div><aside className={`feedback ${answered?"visible":""}`}>{answered?<><p className="eyebrow">{correct?"RACIOCÍNIO CONSISTENTE":"PONTO DE REVISÃO"}</p><h3>{correct?"Boa leitura.":"Vamos localizar o erro."}</h3><p>{question.explanation}</p><div className="feedback-note"><b>Outra forma de pensar</b><p>{question.alternativeExplanation}</p></div>{!question.reviewed&&<div className="pending">CRITÉRIO AINDA NÃO APROVADO PARA USO CLÍNICO</div>}<button className="primary" onClick={next}>Próximo treino →</button></>:<><p className="eyebrow">ETAPA 3 · EXERCÍCIO</p><h3>Responda pelo critério</h3><p>Não marque apenas o diagnóstico. Observe o traçado, escolha uma alternativa e informe sua confiança.</p>{hints>0&&<div className="feedback-note"><b>Dica</b><p>Use a ordem: duração → morfologia → conclusão. Procure o elemento principal pedido.</p></div>}</>}</aside></section>
+  </div><aside className={`feedback ${answered?"visible":""}`}>{answered?<><p className="eyebrow">{correct?"RACIOCÍNIO CONSISTENTE":"PONTO DE REVISÃO"}</p><h3>{correct?"Boa leitura.":"Vamos localizar o erro."}</h3>
+    {!correct&&selected!==null&&<div className="error-diagnosis"><small>VOCÊ MARCOU</small><b>{question.options[selected]}</b><p>{question.optionFeedback?.[selected]||`Essa alternativa não explica o elemento central pedido. Compare-a com “${question.options[question.answer]}” e identifique qual etapa do raciocínio foi trocada.`}</p></div>}
+    <p>{question.explanation}</p><div className="feedback-note"><b>Outra forma de pensar</b><p>{question.alternativeExplanation}</p></div>
+    {profile&&<div className="deep-feedback">
+      <details open={!correct}><summary>Por que esse erro acontece?</summary><p>{profile.reasoning}</p></details>
+      <details><summary>Comparar outros exemplos e vetores</summary><div className="feedback-examples">{profile.examples.map(example=><article key={example.label}><b>{example.label}</b><p>{example.text}</p></article>)}</div></details>
+      {profile.measurements&&<details><summary>Medidas e valores de referência</summary><div className="measure-table">{profile.measurements.map(item=><div key={item.label}><b>{item.label}</b><strong>{item.value}</strong><span>{item.note}</span></div>)}</div></details>}
+      <details><summary>Do comum ao potencialmente grave</summary><div className="spectrum">{profile.spectrum.map(item=><article className={item.tone} key={item.label}><b>{item.label}</b><p>{item.text}</p></article>)}</div></details>
+    </div>}
+    {!question.reviewed&&<div className="pending">CRITÉRIO AINDA NÃO APROVADO PARA USO CLÍNICO</div>}<button className="primary" onClick={next}>Próximo treino →</button></>:<><p className="eyebrow">ETAPA 3 · EXERCÍCIO</p><h3>Responda pelo critério</h3><p>Não marque apenas o diagnóstico. Observe o traçado, escolha uma alternativa e informe sua confiança.</p>{hints>0&&<div className="feedback-note"><b>Dica</b><p>Use a ordem: duração → morfologia → conclusão. Procure o elemento principal pedido.</p></div>}</>}</aside></section>
 }
 
 function Dashboard({progress,mastery,review}:{progress:Progress;mastery:Record<string,number>;review:()=>void}){

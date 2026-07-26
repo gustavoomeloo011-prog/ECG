@@ -30,6 +30,7 @@ export interface Question {
   prompt: string;
   type: QuestionType;
   options: string[];
+  optionFeedback?: string[];
   answer: number;
   explanation: string;
   alternativeExplanation: string;
